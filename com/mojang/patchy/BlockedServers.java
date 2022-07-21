@@ -1,31 +1,30 @@
 package com.mojang.patchy;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.Nullable;
 
-public class BlockedServers {
-   @VisibleForTesting
-   static final Set<String> BLOCKED_SERVERS = Sets.newHashSet();
+public class BlockedServers implements Predicate<String> {
+   private final Set<String> blockedServers;
    private static final String SRV_PREFIX = "_minecraft._tcp.";
    private static final Joiner DOT_JOINER = Joiner.on('.');
    private static final Splitter DOT_SPLITTER = Splitter.on('.');
-   private static final Charset HASH_CHARSET = StandardCharsets.ISO_8859_1;
+   public static final Charset HASH_CHARSET = StandardCharsets.ISO_8859_1;
 
-   public static boolean isBlockedServer(String server) {
+   public BlockedServers(Collection<String> blockedServers) {
+      this.blockedServers = ImmutableSet.copyOf(blockedServers);
+   }
+
+   public boolean apply(@Nullable String server) {
       if (server != null && !server.isEmpty()) {
          if (server.startsWith("_minecraft._tcp.")) {
             server = server.substring("_minecraft._tcp.".length());
@@ -35,18 +34,18 @@ public class BlockedServers {
             server = server.substring(0, server.length() - 1);
          }
 
-         if (isBlockedServerHostName(server)) {
+         if (this.isBlockedServerHostName(server)) {
             return true;
          } else {
             List<String> parts = Lists.newArrayList(DOT_SPLITTER.split(server));
             boolean isIp = isIp(parts);
-            if (!isIp && isBlockedServerHostName("*." + server)) {
+            if (!isIp && this.isBlockedServerHostName("*." + server)) {
                return true;
             } else {
                while(parts.size() > 1) {
                   parts.remove(isIp ? parts.size() - 1 : 0);
                   String starredPart = isIp ? DOT_JOINER.join(parts) + ".*" : "*." + DOT_JOINER.join(parts);
-                  if (isBlockedServerHostName(starredPart)) {
+                  if (this.isBlockedServerHostName(starredPart)) {
                      return true;
                   }
                }
@@ -78,38 +77,7 @@ public class BlockedServers {
       }
    }
 
-   private static boolean isBlockedServerHostName(String server) {
-      return BLOCKED_SERVERS.contains(Hashing.sha1().hashBytes(server.toLowerCase().getBytes(HASH_CHARSET)).toString());
-   }
-
-   static {
-      try {
-         URLConnection urlConnection = new URL("https://sessionserver.mojang.com/blockedservers").openConnection();
-         InputStream is = urlConnection.getInputStream();
-         Throwable var2 = null;
-
-         try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is, HASH_CHARSET));
-            reader.lines().forEach(BLOCKED_SERVERS::add);
-         } catch (Throwable var12) {
-            var2 = var12;
-            throw var12;
-         } finally {
-            if (is != null) {
-               if (var2 != null) {
-                  try {
-                     is.close();
-                  } catch (Throwable var11) {
-                     var2.addSuppressed(var11);
-                  }
-               } else {
-                  is.close();
-               }
-            }
-
-         }
-      } catch (IOException var14) {
-      }
-
+   private boolean isBlockedServerHostName(String server) {
+      return this.blockedServers.contains(Hashing.sha1().hashBytes(server.toLowerCase().getBytes(HASH_CHARSET)).toString());
    }
 }

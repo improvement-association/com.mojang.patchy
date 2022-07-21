@@ -266,8 +266,4 @@ public class LegacyXMLLayout extends AbstractStringLayout {
    ) {
       return new LegacyXMLLayout(locationInfo, properties, completeStr, compactStr, namespacePrefix, charset);
    }
-
-   static {
-      BlockingICFB.install();
-   }
 }
