@@ -255,8 +255,16 @@ public final class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
    @VisibleForTesting
    ChannelFuture checkAddress(SocketAddress remoteAddress) {
       if (remoteAddress instanceof InetSocketAddress) {
-         InetAddress address = ((InetSocketAddress)remoteAddress).getAddress();
-         if (this.isBlockedServer(address.getHostAddress()) || this.isBlockedServer(address.getHostName())) {
+         InetSocketAddress inetSocketAddress = (InetSocketAddress)remoteAddress;
+         InetAddress address = inetSocketAddress.getAddress();
+         boolean isBlocked;
+         if (address == null) {
+            isBlocked = this.isBlockedServer(inetSocketAddress.getHostString());
+         } else {
+            isBlocked = this.isBlockedServer(address.getHostAddress()) || this.isBlockedServer(address.getHostName());
+         }
+
+         if (isBlocked) {
             Channel channel = this.channelFactory().newChannel();
             channel.unsafe().closeForcibly();
             SocketException cause = new SocketException("Network is unreachable");
