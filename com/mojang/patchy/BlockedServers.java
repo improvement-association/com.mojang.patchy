@@ -1,7 +1,6 @@
 package com.mojang.patchy;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -11,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 public class BlockedServers implements Predicate<String> {
@@ -24,7 +24,7 @@ public class BlockedServers implements Predicate<String> {
       this.blockedServers = ImmutableSet.copyOf(blockedServers);
    }
 
-   public boolean apply(@Nullable String server) {
+   public boolean test(@Nullable String server) {
       if (server != null && !server.isEmpty()) {
          if (server.startsWith("_minecraft._tcp.")) {
             server = server.substring("_minecraft._tcp.".length());
